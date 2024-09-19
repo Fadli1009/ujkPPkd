@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CommentController extends Controller
 {
@@ -61,10 +62,37 @@ class CommentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Comment $comment)
+    public function update(Request $request)
     {
-        //
+        $request->validate([
+            'id_comment' => 'required|exists:comments,id',
+            'comments' => 'required|string|max:255',
+            'file' => 'nullable|image|max:2048',
+        ]);
+
+        $id = $request->input('id_comment');
+        $comment = Comment::findOrFail($id);
+        $path = $comment->file; // Preserve the existing file path
+
+        // Handle file upload
+        if ($request->hasFile('file')) {
+            // Optionally delete the old file if it exists
+            if ($comment->file) {
+                Storage::disk('public')->delete($comment->file);
+            }
+            $file = $request->file('file');
+            $filename = time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('comments', $filename, 'public');
+        }
+
+        $comment->update([
+            'comments' => $request->comments,
+            'file' => $path,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment updated successfully.');
     }
+
 
     /**
      * Remove the specified resource from storage.

@@ -2,7 +2,7 @@
 
 @section('content')
     <div id="postsContainer" class="mt-5">
-        @forelse ($data as $post)
+        @foreach ($data as $post)
             <div class="card mb-3 shadow-sm border-primary">
                 <div class="card-body">
                     <h5 class="card-title text-primary">{{ $post->judul }}</h5>
@@ -12,17 +12,9 @@
                     @endif
                     <p class="card-text mt-2"><strong>Hashtags:</strong> {{ $post->hashtag }}</p>
                     <p class="card-text"><strong>Description:</strong> {{ $post->deskripsi }}</p>
+                    <p class="card-text"><strong>Description:</strong> {{ $post->user->name }}</p>
                     <small class="text-muted">Posted on {{ $post->created_at->format('d M Y H:i') }}</small>
 
-                    <div class="mt-3">
-                        <span class="badge bg-primary">{{ $post->like->count() }} Likes</span>
-                        <form action="{{ route('likes.store') }}" method="POST" style="display:inline;">
-                            @csrf
-                            <input type="hidden" name="post_id" value="{{ $post->id }}">
-                            <input type="hidden" name="user_id" value="{{ Auth::user()->id }}">
-                            <button type="submit" class="btn btn-outline-primary btn-sm">Like</button>
-                        </form>
-                    </div>
 
                     <hr>
 
@@ -34,6 +26,7 @@
                                     <strong>{{ $comment->user->name }}</strong>: {{ $comment->comments }}
                                     <small class="text-muted">- {{ $comment->created_at->diffForHumans() }}</small>
 
+                                    <!-- Menampilkan gambar jika ada -->
                                     @if ($comment->file)
                                         <div class="mt-2">
                                             <img src="{{ asset('storage/' . $comment->file) }}" class="img-fluid"
@@ -49,8 +42,11 @@
                                         </button>
                                         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                             <li>
-                                                <a class="dropdown-item"
-                                                    href="{{ route('comments.edit', $comment->id) }}">Edit</a>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal"
+                                                    data-bs-target="#editCommentModal-{{ $comment->id }}">
+                                                    Edit
+                                                </button>
+
                                             </li>
                                             <li>
                                                 <form action="{{ route('comments.destroy', $comment->id) }}" method="POST"
@@ -65,19 +61,50 @@
                                     </div>
                                 @endif
                             </li>
+                            <!-- Edit Comment Modal -->
+                            <div class="modal fade" id="editCommentModal-{{ $comment->id }}" tabindex="-1"
+                                aria-labelledby="editCommentModalLabel" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <form id="editCommentForm" method="POST" enctype="multipart/form-data"
+                                        action="{{ route('comments.update', $comment->id) }}">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editCommentModalLabel">Edit Comment</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" name="id_comment" value="{{ $comment->id }}">
+                                                <input type="text" name="comments" class="form-control"
+                                                    id="editCommentInput" required value="{{ $comment->comments }}">
+                                                <input type="file" name="file" class="form-control mt-2"
+                                                    accept="image/*">
+                                                <input type="hidden" name="comment_id" id="commentIdInput">
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-primary">Save changes</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         @endforeach
                     </ul>
-
                     <form action="{{ route('comments.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="id_posts" value="{{ $post->id }}">
                         <input type="hidden" name="id_user" value="{{ Auth::user()->id }}">
                         <div class="input-group mb-3">
-                            <input type="text" name="comments" class="form-control" placeholder="Add a comment" required>
+                            <input type="text" name="comments" class="form-control" placeholder="Add a comment">
                             <input type="file" name="file" class="form-control" accept="image/*">
                             <button class="btn btn-primary" type="submit">Submit</button>
                         </div>
                     </form>
+
 
                     <div class="mt-3">
                         <a href="{{ route('post.edit', $post->id) }}" class="btn btn-warning btn-sm">Edit</a>
@@ -90,8 +117,14 @@
                     </div>
                 </div>
             </div>
-        @empty
-            <p>No posts found.</p>
-        @endforelse
+        @endforeach
     </div>
+    <script>
+        function openEditModal(commentId, commentText) {
+            document.getElementById('editCommentInput').value = commentText;
+            document.getElementById('commentIdInput').value = commentId;
+            document.getElementById('editCommentForm').action = '/comments/' + commentId; // Adjust this route as necessary
+            $('#editCommentModal').modal('show');
+        }
+    </script>
 @endsection
