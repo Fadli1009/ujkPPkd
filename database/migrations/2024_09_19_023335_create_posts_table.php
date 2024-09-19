@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('id_user');
+            $table->string('judul');
             $table->string('gambar');
             $table->string('hashtag');
+
             $table->text('deskripsi');
             $table->timestamps();
             $table->foreign('id_user')->references('id')->on('users');
